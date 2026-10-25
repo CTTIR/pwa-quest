@@ -1,4 +1,4 @@
-# Questionnaire PWA <img src="assets/branding/logo.png" alt="pwa-quest hex logo" width="120" height="139" align="right" />
+# Questionnaire PWA <picture class="cttir-readme-logo"><source class="cttir-logo-dark-source" media="(prefers-color-scheme: dark)" srcset="assets/branding/logo-with-name-dark.png" /><img src="assets/branding/logo-with-name.png" alt="pwa-quest hex logo" align="right" width="120" height="155" /></picture>
 
 An offline-first Progressive Web App for collecting questionnaire responses in
 research / field settings. Each session is keyed by a participant ID and a
@@ -203,6 +203,6 @@ Local software setup: vLLM with Python/PyTorch, plus R and RStudio.
 
 ## Branding
 
-The supplied CTTIR Material Atlas artwork and its editable R source are in
+The supplied CTTIR Coder Edition v4.1 artwork and its editable R source are in
 [`tools/branding`](tools/branding/README.md). Use that renderer to reproduce
 the primary badge, alternate editions, and platform icons.
