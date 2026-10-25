@@ -1,4 +1,4 @@
-# Questionnaire PWA
+# Questionnaire PWA <img src="assets/branding/logo.png" alt="pwa-quest hex logo" width="120" height="139" align="right" />
 
 An offline-first Progressive Web App for collecting questionnaire responses in
 research / field settings. Each session is keyed by a participant ID and a
@@ -172,16 +172,16 @@ device unless the operator chooses to share an exported file or QR code.
 
 ## Re-generating PWA icons
 
-Source-of-truth is `public/icons/icon.svg`. The PNGs are generated with a
-one-shot script that uses `sharp` (not a project dependency — install it
-ad-hoc):
+The editable R geometry in `tools/branding` is the source of the PWA icons.
+The committed PNGs include a maskable icon with an opaque background and
+the complete symbol inside the safe circle. Regenerate registered assets with:
 
-```bash
-npm install --no-save sharp
-node scripts/build-icons.mjs
+```sh
+Rscript tools/branding/render.R --apply
 ```
 
-Commit the resulting PNGs in `public/icons/`.
+`node scripts/build-icons.mjs` runs the same R renderer. R with Cairo graphics
+is needed only when regenerating artwork. Commit the resulting assets.
 
 ## Use of LLM tools
 
@@ -200,3 +200,9 @@ must be reviewed and revised before inclusion, and references must be verified
 against their DOI, arXiv ID or ISBN.
 
 Local software setup: vLLM with Python/PyTorch, plus R and RStudio.
+
+## Branding
+
+The supplied CTTIR Material Atlas artwork and its editable R source are in
+[`tools/branding`](tools/branding/README.md). Use that renderer to reproduce
+the primary badge, alternate editions, and platform icons.
