@@ -18,6 +18,7 @@ export default function App() {
   return (
     <div className="mx-auto flex min-h-full max-w-2xl flex-col px-4 pb-8 pt-6 sm:px-6">
       <header className="mb-4 flex items-center justify-between">
+        <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="pwa-quest logo" width="96" height="111" />
         <h1 className="text-lg font-semibold tracking-tight text-slate-100">
           Questionnaire
         </h1>
