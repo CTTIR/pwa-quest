@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useId } from 'react';
 
 interface ModalProps {
   open: boolean;
@@ -21,43 +21,41 @@ export function Modal({
   onConfirm,
   onCancel,
 }: ModalProps) {
-  const confirmRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  const descId = useId();
 
   useEffect(() => {
-    if (!open) return;
-    confirmRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onCancel]);
+    const dialog = dialogRef.current;
+    if (open && dialog && !dialog.open) dialog.showModal();
+    return () => { if (dialog?.open) dialog.close(); };
+  }, [open]);
 
   if (!open) return null;
 
   return (
-    <div
-      role="dialog"
+    <dialog
+      ref={dialogRef}
+      onCancel={(event) => { event.preventDefault(); onCancel(); }}
       aria-modal="true"
-      aria-labelledby="modal-title"
-      aria-describedby={description ? 'modal-desc' : undefined}
-      className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 px-4"
+      aria-labelledby={titleId}
+      aria-describedby={description ? descId : undefined}
+      className="m-auto w-full max-w-sm rounded-xl border-0 bg-transparent p-0 text-slate-100 backdrop:bg-black/60"
     >
       <div className="w-full max-w-sm rounded-xl bg-slate-800 p-6 ring-1 ring-slate-700">
-        <h2 id="modal-title" className="mb-2 text-lg font-semibold text-slate-50">
+        <h2 id={titleId} className="mb-2 text-lg font-semibold text-slate-50">
           {title}
         </h2>
         {description && (
-          <p id="modal-desc" className="mb-5 text-sm text-slate-300">
+          <p id={descId} className="mb-5 text-sm text-slate-300">
             {description}
           </p>
         )}
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <button type="button" className="btn-secondary" onClick={onCancel}>
+          <button autoFocus type="button" className="btn-secondary" onClick={onCancel}>
             {cancelLabel}
           </button>
           <button
-            ref={confirmRef}
             type="button"
             className={destructive ? 'btn-danger' : 'btn-primary'}
             onClick={onConfirm}
@@ -66,6 +64,6 @@ export function Modal({
           </button>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

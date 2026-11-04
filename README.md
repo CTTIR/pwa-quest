@@ -3,11 +3,11 @@
 An offline-first Progressive Web App for collecting questionnaire responses in
 research / field settings. Each session is keyed by a participant ID and a
 scenario. After ten questions the app can export the data as a QR code (for
-scanning at a central station) or as a CSV / XLSX / TXT / XML file.
+scanning at a central station) or as a JSON / CSV / XLSX / TXT / XML file.
 
-No backend, no telemetry, no network calls at runtime. The app boots from a
-service-worker cache after the first visit and continues to work with the
-device fully offline.
+No backend or telemetry receives participant responses. The initial visit and
+service-worker update checks contact the static host. Once the production app
+has finished caching and its service worker controls the page, it works offline.
 
 ## Tech choices
 
@@ -27,8 +27,10 @@ device fully offline.
 
 ## Develop
 
+Use Node.js 24 and npm. Install the committed lockfile reproducibly:
+
 ```bash
-npm install
+npm ci
 npm run dev          # http://localhost:5173
 ```
 
@@ -63,7 +65,7 @@ and the publish directory to `dist`. No further config needed.
 ### GitHub Pages
 
 A workflow at `.github/workflows/deploy.yml` builds and publishes the site
-on every push to `main` (and on this feature branch / on manual dispatch).
+on every push to `main` or on manual dispatch.
 It builds with `BASE_PATH=/<repo-name>/` so asset URLs resolve correctly
 from the sub-path host.
 
@@ -107,7 +109,7 @@ level **M**, a QR code can hold roughly 2,300 alphanumeric characters or
 ~1,800 byte-mode characters in practice — but scannability degrades as the
 code approaches that limit, especially on cheaper phone cameras.
 
-The app warns when the JSON exceeds **2,000 characters** and recommends the
+The app warns when the JSON exceeds **2,000 UTF-8 bytes** and recommends the
 file download instead. Multi-QR chunking is intentionally **not** supported
 — scanning chunked codes in the field is fiddly, and the file downloads
 already cover this case. If you need it, open an issue.
@@ -128,10 +130,55 @@ are sanitised — anything outside `[A-Za-z0-9_-]` is collapsed to `-`.
 
 | Format | Notes                                                                |
 | ------ | -------------------------------------------------------------------- |
+| JSON   | Exact canonical session, including typed answers and all metadata; preferred archival format. |
 | CSV    | One row per answer. RFC 4180 quoting. UTF-8 BOM for Excel on Windows.|
 | XLSX   | Two sheets: `Session` (key/value metadata) and `Answers` (CSV-shape).|
 | TXT    | Human-readable — header block, then `Q/A` pairs.                     |
 | XML    | Well-formed, single `<session>` root, escaped attribute/element data.|
+
+CSV cells beginning with a spreadsheet formula prefix (`=`, `+`, `-`, or `@`,
+including after whitespace) receive a leading apostrophe to prevent execution.
+This changes their CSV text; use JSON for exact values. XLSX writes answers as
+literal text cells. Flat formats join multiple selections with `|`; JSON keeps
+the array structure. XML refuses XML 1.0-invalid characters rather than silently
+removing response content. Export errors preserve the current session for retry.
+
+## Saved sessions and recovery
+
+Use one tab per device and participant. Storage is local to this browser and
+origin; it is not encrypted, synchronized, or a backup. Export before clearing
+site data or handing the device to another participant. Browser eviction or
+private browsing can remove local storage.
+
+Saved drafts are validated and bound to the exact questionnaire and scenario
+configuration. Any wording, options, order, or schema change blocks incompatible
+resume without deleting the saved value. Restore the matching app version to
+recover it, or explicitly confirm clearing it. Valid drafts from the original
+unversioned app remain readable while that original configuration is unchanged.
+A persistent storage error provides a retry action. A failed clear does not
+pretend the participant's data was removed.
+
+## Checks
+
+```bash
+npm test
+BASE_PATH=/pwa-quest/ npm run build
+npx playwright install chromium
+npm run test:browser
+npm audit --omit=dev
+```
+
+The browser test exercises the production service worker, an offline questionnaire,
+reload/resume, all download formats and durable clearing using synthetic answers.
+Physical camera scanning and native mobile sharing still require device checks.
+The example instrument is not a scientifically validated questionnaire.
+
+## Licensing
+
+No repository-wide license has been specified. Public GitHub visibility alone
+does not grant general redistribution permission; the maintainer must choose
+and document a license before an open-source release. Third-party dependencies
+retain their own licenses.
 
 ## Project layout
 

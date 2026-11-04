@@ -40,9 +40,10 @@ export function QrDisplay({
     <div className="flex flex-col items-center">
       <div
         className="rounded-xl bg-white p-3 shadow-md"
-        style={{ width: size + 24, height: size + 24 }}
+        style={{ width: size + 24, maxWidth: '100%' }}
       >
         <canvas
+          className="h-auto max-w-full"
           ref={canvasRef}
           width={size}
           height={size}

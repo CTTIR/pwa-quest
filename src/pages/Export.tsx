@@ -26,6 +26,9 @@ export function Export() {
   // downloads share a consistent timestamp and filename.
   const [completedAt] = useState(() => new Date());
   const [confirmReset, setConfirmReset] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [exportBusy, setExportBusy] = useState(false);
+  const storageBusy = useApp((s) => s.storageBusy);
 
   const exportSession = useMemo(
     () => (session ? buildSession(session, completedAt) : null),
@@ -35,11 +38,22 @@ export function Export() {
   if (!session || !exportSession) return null;
 
   const json = JSON.stringify(exportSession);
-  const tooLargeForQr = json.length > QR_WARN_THRESHOLD;
+  const qrBytes = new TextEncoder().encode(json).length;
+  const tooLargeForQr = qrBytes > QR_WARN_THRESHOLD;
 
   const fname = (ext: string) =>
     buildFilename(session.participantId, session.scenario, ext, completedAt);
 
+  const runExport = async (action: () => void | Promise<void>) => {
+    setExportError(null);
+    setExportBusy(true);
+    try { await action(); }
+    catch (error) {
+      setExportError(`Export failed. Your answers are still available. ${error instanceof Error ? error.message : 'Please try again.'}`);
+    } finally { setExportBusy(false); }
+  };
+
+  const onJson = () => downloadText(JSON.stringify(exportSession, null, 2), fname('json'), 'application/json');
   const onCsv = () => downloadText(buildCsv(exportSession), fname('csv'), 'text/csv');
   const onTxt = () => downloadText(buildTxt(exportSession), fname('txt'), 'text/plain');
   const onXml = () => downloadText(buildXml(exportSession), fname('xml'), 'application/xml');
@@ -86,6 +100,7 @@ export function Export() {
 
   return (
     <div className="space-y-6">
+      {exportError && <p role="alert" className="rounded-lg bg-red-900/40 p-3 text-red-200">{exportError}</p>}
       <div className="card">
         <h2 className="mb-1 text-base font-semibold text-slate-100">Session complete</h2>
         <p className="text-sm text-slate-300">
@@ -103,7 +118,7 @@ export function Export() {
             className="rounded-lg bg-amber-900/40 p-3 text-sm text-amber-200"
             role="alert"
           >
-            Data too large for a single QR ({json.length.toLocaleString()} characters).
+            Data too large for a single QR ({qrBytes.toLocaleString()} UTF-8 bytes).
             Consider shortening text answers, or use the file download instead.
           </p>
         ) : (
@@ -118,7 +133,7 @@ export function Export() {
               <QrDisplay data={json} size={320} errorCorrectionLevel="M" />
             </Suspense>
             <p className="mt-3 text-center text-xs text-slate-400">
-              {json.length.toLocaleString()} characters · error correction level M
+              {qrBytes.toLocaleString()} UTF-8 bytes · error correction level M
             </p>
           </>
         )}
@@ -128,17 +143,20 @@ export function Export() {
         <h3 id="dl-heading" className="mb-3 text-base font-semibold text-slate-100">
           Download
         </h3>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <button type="button" className="btn-secondary" onClick={onCsv}>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <button type="button" className="btn-secondary" disabled={exportBusy} onClick={() => void runExport(onJson)}>
+            JSON
+          </button>
+          <button type="button" className="btn-secondary" disabled={exportBusy} onClick={() => void runExport(onCsv)}>
             CSV
           </button>
-          <button type="button" className="btn-secondary" onClick={onXlsx}>
+          <button type="button" className="btn-secondary" disabled={exportBusy} onClick={() => void runExport(onXlsx)}>
             XLSX
           </button>
-          <button type="button" className="btn-secondary" onClick={onTxt}>
+          <button type="button" className="btn-secondary" disabled={exportBusy} onClick={() => void runExport(onTxt)}>
             TXT
           </button>
-          <button type="button" className="btn-secondary" onClick={onXml}>
+          <button type="button" className="btn-secondary" disabled={exportBusy} onClick={() => void runExport(onXml)}>
             XML
           </button>
         </div>
@@ -152,7 +170,7 @@ export function Export() {
         <h3 id="email-heading" className="mb-3 text-base font-semibold text-slate-100">
           Send by email
         </h3>
-        <button type="button" className="btn-primary w-full" onClick={onEmailXml}>
+        <button type="button" className="btn-primary w-full" disabled={exportBusy} onClick={() => void runExport(onEmailXml)}>
           Email XML
         </button>
         <p className="mt-3 text-xs text-slate-400">
@@ -166,6 +184,7 @@ export function Export() {
         <button
           type="button"
           className="btn-danger"
+          disabled={storageBusy || exportBusy}
           onClick={() => setConfirmReset(true)}
         >
           New session

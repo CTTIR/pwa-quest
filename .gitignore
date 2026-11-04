@@ -9,3 +9,6 @@ dist-ssr
 .idea
 *.tsbuildinfo
 dev-dist
+
+playwright-report/
+test-results/

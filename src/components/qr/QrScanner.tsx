@@ -2,7 +2,7 @@
 // and a built-in camera-permission UI. Mounted only while active so the
 // camera stream stops cleanly when we navigate away.
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 
 interface QrScannerProps {
@@ -13,8 +13,6 @@ interface QrScannerProps {
 const REGION_ID = 'qr-reader';
 
 export function QrScanner({ onResult, onError }: QrScannerProps) {
-  const startedRef = useRef(false);
-  const scannerRef = useRef<Html5Qrcode | null>(null);
   const [status, setStatus] = useState<'starting' | 'running' | 'denied' | 'error'>(
     'starting',
   );
@@ -22,13 +20,22 @@ export function QrScanner({ onResult, onError }: QrScannerProps) {
 
   useEffect(() => {
     let cancelled = false;
+    let scanner: Html5Qrcode | null = null;
+    let stopping: Promise<void> | null = null;
+    let decodedOnce = false;
+    const stop = async () => {
+      if (!scanner || stopping) return stopping;
+      if (!scanner.isScanning) return;
+      stopping = scanner.stop().then(() => { scanner?.clear(); }).catch(() => undefined);
+      return stopping;
+    };
 
     const start = async () => {
-      if (startedRef.current) return;
-      startedRef.current = true;
-
-      const scanner = new Html5Qrcode(REGION_ID, { verbose: false });
-      scannerRef.current = scanner;
+      // Defer creation so React's development effect replay can cancel before
+      // a second scanner starts on the same DOM region.
+      await Promise.resolve();
+      if (cancelled) return;
+      scanner = new Html5Qrcode(REGION_ID, { verbose: false });
 
       try {
         await scanner.start(
@@ -42,21 +49,16 @@ export function QrScanner({ onResult, onError }: QrScannerProps) {
             },
           },
           (decoded) => {
-            // Stop after first successful scan to free the camera promptly.
-            scanner
-              .stop()
-              .catch(() => {
-                /* already stopping */
-              })
-              .finally(() => {
-                if (!cancelled) onResult(decoded);
-              });
+            if (cancelled || decodedOnce) return;
+            decodedOnce = true;
+            void stop().then(() => { if (!cancelled) onResult(decoded); });
           },
           () => {
             /* ignore per-frame decode failures */
           },
         );
-        if (!cancelled) setStatus('running');
+        if (cancelled) await stop();
+        else setStatus('running');
       } catch (err) {
         const name = (err as DOMException | Error)?.name ?? '';
         const msg =
@@ -75,16 +77,9 @@ export function QrScanner({ onResult, onError }: QrScannerProps) {
 
     return () => {
       cancelled = true;
-      const s = scannerRef.current;
-      if (s && s.isScanning) {
-        s.stop()
-          .catch(() => {
-            /* ignore */
-          })
-          .finally(() => {
-            s.clear();
-          });
-      }
+      // A pending permission request may finish after unmount; start() also
+      // stops that late stream immediately once it becomes available.
+      void stop();
     };
     // We deliberately want this to run once on mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps

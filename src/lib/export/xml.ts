@@ -1,6 +1,11 @@
 import type { ExportSession } from '../../types';
 
 function escapeXml(input: string): string {
+  // XML 1.0 cannot represent these characters, even as numeric entities.
+  // Refuse instead of silently dropping part of a participant response.
+  if (/[^\u0009\u000A\u000D\u0020-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/u.test(input)) {
+    throw new Error('A response contains a character XML 1.0 cannot represent. Use JSON or XLSX to preserve the response.');
+  }
   return input
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')

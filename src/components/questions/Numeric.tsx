@@ -25,7 +25,7 @@ export function Numeric({ question, value, onChange }: Props) {
             const v = e.target.value;
             if (v === '') return onChange(null);
             const n = Number(v);
-            onChange(Number.isNaN(n) ? null : n);
+            onChange(Number.isFinite(n) ? n : null);
           }}
           min={question.min}
           max={question.max}

@@ -34,6 +34,8 @@ function parseSetupQr(text: string): ParsedQr | string {
 }
 
 export function Setup() {
+  const storageBusy = useApp((s) => s.storageBusy);
+  const recoveryRequired = useApp((s) => s.recoveryRequired);
   const startSession = useApp((s) => s.startSession);
 
   const [step, setStep] = useState<Step>('choose');
@@ -222,7 +224,7 @@ export function Setup() {
         <button type="button" className="btn-ghost" onClick={() => setStep('choose')}>
           Edit
         </button>
-        <button type="button" className="btn-primary" onClick={onConfirm}>
+        <button type="button" className="btn-primary" disabled={storageBusy || recoveryRequired} onClick={onConfirm}>
           Start questionnaire
         </button>
       </div>

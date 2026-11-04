@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "questions": [
+    {
+      "id": "q1",
+      "type": "likert5",
+      "question": "Overall, the task was easy to complete.",
+      "lowLabel": "Strongly disagree",
+      "highLabel": "Strongly agree"
+    },
+    {
+      "id": "q2",
+      "type": "stars10",
+      "question": "How would you rate the experience overall? (1 = poor, 10 = excellent)"
+    },
+    {
+      "id": "q3",
+      "type": "singleSelect",
+      "question": "Which part of the task felt most demanding?",
+      "options": [
+        "Understanding the instructions",
+        "Performing the steps",
+        "Tracking my progress",
+        "Recovering from a mistake",
+        "Nothing felt particularly demanding"
+      ]
+    },
+    {
+      "id": "q4",
+      "type": "multiSelect",
+      "question": "Which of the following did you experience during the task? (select all that apply)",
+      "options": [
+        "Felt confident",
+        "Felt confused",
+        "Felt rushed",
+        "Felt distracted",
+        "Felt focused",
+        "Felt frustrated"
+      ],
+      "min": 0,
+      "max": 6
+    },
+    {
+      "id": "q5",
+      "type": "slider",
+      "question": "How mentally demanding was the task?",
+      "description": "0 = not at all demanding, 100 = extremely demanding",
+      "min": 0,
+      "max": 100,
+      "step": 1
+    },
+    {
+      "id": "q6",
+      "type": "yesNoUnsure",
+      "question": "Would you be willing to perform this task again under similar conditions?"
+    },
+    {
+      "id": "q7",
+      "type": "shortText",
+      "question": "In one phrase, how would you describe the task?",
+      "maxLength": 80,
+      "placeholder": "e.g. \"straightforward but tiring\""
+    },
+    {
+      "id": "q8",
+      "type": "longText",
+      "question": "Anything else you would like the researchers to know? (optional)",
+      "optional": true,
+      "maxLength": 100,
+      "placeholder": "Optional comments…"
+    },
+    {
+      "id": "q9",
+      "type": "numeric",
+      "question": "What is your age?",
+      "min": 18,
+      "max": 120,
+      "unit": "years"
+    },
+    {
+      "id": "q10",
+      "type": "ranking",
+      "question": "Rank the following aspects of the task from most to least important to you.",
+      "items": [
+        "Speed",
+        "Accuracy",
+        "Comfort",
+        "Clarity of instructions",
+        "Sense of control"
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "scenario-A",
+      "label": "Scenario A — Baseline task"
+    },
+    {
+      "id": "scenario-B",
+      "label": "Scenario B — Guided task"
+    },
+    {
+      "id": "scenario-C",
+      "label": "Scenario C — High-load task"
+    },
+    {
+      "id": "scenario-D",
+      "label": "Scenario D — Recovery task"
+    },
+    {
+      "id": "pilot",
+      "label": "Pilot / dry run"
+    }
+  ]
+}

@@ -1,22 +1,16 @@
-import { useEffect } from 'react';
 import { useApp } from '../store';
 import { QUESTIONS } from '../config/questionnaire';
 import { Progress } from '../components/ui/Progress';
 import { QuestionShell } from '../components/questions/QuestionShell';
 import { QuestionRenderer } from '../components/questions/QuestionRenderer';
 import { isAnswerValid } from '../lib/answers';
-import { showToast } from '../components/ui/Toast';
 
 export function Questionnaire() {
+  const storageBusy = useApp((s) => s.storageBusy);
   const session = useApp((s) => s.session);
   const setAnswer = useApp((s) => s.setAnswer);
   const setIndex = useApp((s) => s.setIndex);
   const goTo = useApp((s) => s.goTo);
-  const storageError = useApp((s) => s.storageError);
-
-  useEffect(() => {
-    if (storageError) showToast(storageError, 'error');
-  }, [storageError]);
 
   if (!session) return null;
 
@@ -41,7 +35,7 @@ export function Questionnaire() {
   };
 
   return (
-    <div className="space-y-5">
+    <fieldset disabled={storageBusy} className="space-y-5 min-w-0">
       <Progress current={idx + 1} total={QUESTIONS.length} />
       <QuestionShell
         questionNumber={idx + 1}
@@ -74,6 +68,6 @@ export function Questionnaire() {
           {isLast ? 'Review answers' : 'Next'}
         </button>
       </div>
-    </div>
+    </fieldset>
   );
 }

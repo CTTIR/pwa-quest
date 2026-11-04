@@ -5,6 +5,7 @@
 // isn't worth it.
 
 import type { SessionState } from '../types';
+import { encodeStoredSession } from './session';
 
 const DB_NAME = 'pwa-quest';
 const DB_VERSION = 1;
@@ -14,14 +15,22 @@ const SESSION_KEY = 'session';
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
+    let blocked = false;
     req.onupgradeneeded = () => {
       const db = req.result;
       if (!db.objectStoreNames.contains(STORE)) {
         db.createObjectStore(STORE);
       }
     };
-    req.onsuccess = () => resolve(req.result);
+    req.onsuccess = () => {
+      if (blocked) req.result.close();
+      else resolve(req.result);
+    };
     req.onerror = () => reject(req.error);
+    req.onblocked = () => {
+      blocked = true;
+      reject(new Error('Session storage is blocked by another open app tab. Close that tab and retry.'));
+    };
   });
 }
 
@@ -31,40 +40,43 @@ async function withStore<T>(
 ): Promise<T> {
   const db = await openDb();
   return new Promise<T>((resolve, reject) => {
-    const tx = db.transaction(STORE, mode);
-    const store = tx.objectStore(STORE);
-    const req = fn(store);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-    tx.oncomplete = () => db.close();
+    let tx: IDBTransaction;
+    let req: IDBRequest<T>;
+    try {
+      tx = db.transaction(STORE, mode);
+      req = fn(tx.objectStore(STORE));
+    } catch (error) {
+      db.close();
+      reject(error);
+      return;
+    }
+    // Request success precedes commit. A later transaction abort must still
+    // reject the operation rather than report a successful save or deletion.
+    tx.oncomplete = () => {
+      db.close();
+      resolve(req.result);
+    };
+    tx.onabort = () => {
+      db.close();
+      reject(tx.error ?? req.error ?? new DOMException('Session storage transaction was aborted.', 'AbortError'));
+    };
     tx.onerror = () => {
       db.close();
-      reject(tx.error);
+      reject(tx.error ?? req.error ?? new Error('Session storage transaction failed.'));
     };
   });
 }
 
-export async function loadSession(): Promise<SessionState | null> {
-  try {
-    const value = await withStore('readonly', (s) => s.get(SESSION_KEY));
-    return (value as SessionState | undefined) ?? null;
-  } catch {
-    // IndexedDB can be unavailable in private mode on some browsers — degrade
-    // gracefully so the app is still usable, just without resume.
-    return null;
-  }
+export async function loadSession(): Promise<unknown> {
+  return withStore('readonly', (s) => s.get(SESSION_KEY));
 }
 
 export async function saveSession(session: SessionState): Promise<void> {
-  await withStore('readwrite', (s) => s.put(session, SESSION_KEY));
+  await withStore('readwrite', (s) => s.put(encodeStoredSession(session), SESSION_KEY));
 }
 
 export async function clearSession(): Promise<void> {
-  try {
-    await withStore('readwrite', (s) => s.delete(SESSION_KEY));
-  } catch {
-    /* swallow — clearing best-effort */
-  }
+  await withStore('readwrite', (s) => s.delete(SESSION_KEY));
 }
 
 export class StorageQuotaError extends Error {

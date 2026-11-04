@@ -30,6 +30,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Test
+        run: npm test
+
       - name: Build
         env:
           # The site is published at https://<user>.github.io/<repo>/, so Vite
